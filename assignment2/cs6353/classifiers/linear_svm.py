@@ -94,9 +94,10 @@ def svm_loss_vectorized(W, X, y, reg):
   # result in loss.                                                           #
   #############################################################################
   scores = X.dot(W)
-  margins = np.maximum(0, scores - scores[y] + 1)
-  margins[y] = 0
-  loss = np.sum(margins)
+  scores_y = scores[range(len(X)), y][:, np.newaxis]
+  margins = np.maximum(0, scores - scores_y + 1)
+  # margins[y] = 0
+  loss = np.sum(margins)/len(X) - 1 + reg * np.sum(W**2)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
