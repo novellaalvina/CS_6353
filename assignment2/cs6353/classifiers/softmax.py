@@ -94,16 +94,16 @@ def softmax_loss_vectorized(W, X, y, reg):
   # regularization!                                                           #
   #############################################################################
   scores = X.dot(W)
-  scores_y = scores[range(len(X)), y][: np.newaxis]
-  loss = np.sum(-scores_y + np.log(np.sum(np.exp(scores))))/len(X) + (reg * np.sum(W*W))
+  scores -= np.max(scores, axis=1, keepdims=True)
+  p = np.exp(scores) / np.sum(np.exp(scores), axis=1, keepdims=True)
+  loss_i = -np.log(p[range(len(X)), y])
+  loss = np.sum(loss_i)/len(X) + (reg * np.sum(W*W))
 
-  f = np.exp(scores)/np.sum(np.exp(scores))
-  f[range(len(X)), y] -= 1                    # gradient for correct class
-  dW = X.T.dot(f)/len(X) + (2 * reg * W)      # gradient for incorrect class
+  p[range(len(X)), y] -= 1                    # gradient for correct class
+  dW = X.T.dot(p)/len(X) + (2 * reg * W)      # gradient for incorrect class
 
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
 
   return loss, dW
-
