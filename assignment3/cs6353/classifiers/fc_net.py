@@ -47,7 +47,10 @@ class TwoLayerNet(object):
         # and biases using the keys 'W1' and 'b1' and second layer                 #
         # weights and biases using the keys 'W2' and 'b2'.                         #
         ############################################################################
-        pass
+        self.params['W1'] = np.random.rand(input_dim, hidden_dim) / np.sqrt(input_dim)
+        self.params['W2'] = np.random.rand(input_dim, hidden_dim) / np.sqrt(input_dim)
+        self.params['b1'] = np.zeros(input_dim)
+        self.params['b2'] = np.zeros(hidden_dim)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -77,7 +80,14 @@ class TwoLayerNet(object):
         # TODO: Implement the forward pass for the two-layer net, computing the    #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
-        pass
+        w1 = self.params['W1']
+        w2 = self.params['W2']
+        b1 = self.params['b1']
+        b2 = self.params['b2']
+
+        s1 = np.dot(X, w1) + b1
+        f1 = np.maximum(0, s1)
+        scores = np.dot(f1, w2) + b2
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -97,7 +107,11 @@ class TwoLayerNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        loss, dx = softmax_loss(scores, y)
+        loss += 0.5 * np.sum(w2*w2)
+        dx += (2 * 0.5 * w2)
+
+        
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
