@@ -47,10 +47,10 @@ class TwoLayerNet(object):
         # and biases using the keys 'W1' and 'b1' and second layer                 #
         # weights and biases using the keys 'W2' and 'b2'.                         #
         ############################################################################
-        self.params['W1'] = np.random.rand(input_dim, hidden_dim) / np.sqrt(input_dim)
-        self.params['W2'] = np.random.rand(input_dim, hidden_dim) / np.sqrt(input_dim)
-        self.params['b1'] = np.zeros(input_dim)
-        self.params['b2'] = np.zeros(hidden_dim)
+        self.params['W1'] = np.random.normal(0, weight_scale, (input_dim, hidden_dim))
+        self.params['W2'] = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
+        self.params['b1'] = np.zeros(hidden_dim)
+        self.params['b2'] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -84,10 +84,10 @@ class TwoLayerNet(object):
         w2 = self.params['W2']
         b1 = self.params['b1']
         b2 = self.params['b2']
+        reg = self.reg
 
-        s1 = np.dot(X, w1) + b1
-        f1 = np.maximum(0, s1)
-        scores = np.dot(f1, w2) + b2
+        f1, relu_cache = affine_relu_forward(X, w1, b1)    # f1 = np.maximum(0, s1) = np.maximum(0, w1*X + b1)
+        scores, score_cache = affine_forward(f1, w2, b2)   # scores = np.dot(f1, w2) + b2
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -107,10 +107,21 @@ class TwoLayerNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        loss, dx = softmax_loss(scores, y)
-        loss += 0.5 * np.sum(w2*w2)
-        dx += (2 * 0.5 * w2)
+        # softmax_prob = np.exp(scores) / np.sum(np.exp(scores), axis=1, keepdims=True)
+        
+        loss, dout = softmax_loss(scores, y)
+        loss += 0.5 * reg * (np.sum(w2*w2) + np.sum(w1*w1))
 
+        dx2, dw2, db2 = affine_backward(dout, score_cache)
+        dx1, dw1, db1 = affine_relu_backward(dx2, relu_cache)
+
+        dw2 += (2 * 0.5 * reg * w2)
+        dw1 += (2 * 0.5 * reg * w1)
+
+        grads['W1'] = dw1
+        grads['W2'] = dw2
+        grads['b1'] = db1
+        grads['b2'] = db2
         
         ############################################################################
         #                             END OF YOUR CODE                             #
