@@ -184,7 +184,16 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to ones and shift     #
         # parameters should be initialized to zeros.                               #
         ############################################################################
-        pass
+        self.params['W1'] = np.random.normal(0, weight_scale, (input_dim, hidden_dims))
+        self.params['W2'] = np.random.normal(0, weight_scale, (hidden_dims, num_classes))
+        self.params['b1'] = np.zeros(hidden_dims)
+        self.params['b2'] = np.zeros(num_classes)
+
+        if self.normalization == 'batchnorm':
+            self.params['gamma1'] = np.ones(self.params['W1'].shape)  # scale    
+            self.params['gamma2'] = np.ones(self.params['W2'].shape)  # scale 
+            self.params['beta1'] = np.zeros(self.params['b1'].shape)  # shift
+            self.params['beta2'] = np.zeros(self.params['b2'].shape)  # shift
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
