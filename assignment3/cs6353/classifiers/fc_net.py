@@ -238,19 +238,16 @@ class FullyConnectedNet(object):
         # the forward pass for the first batch normalization layer, pass           #
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
-        ############################################################################
-            # {affine - [batch/layer norm] - relu} x (L - 1) - affine - softmax
-       
+        ############################################################################       
         reg = self.reg
         w = {}
         b = {}
         g = {}
         bt = {}
-        l_o = {} # layer outs
         l_c = {}
-        l_o[0] = X
+        scores = X
 
-        for l in range(self.num_layers):
+        for l in range(self.num_layers-1):
           cache = []
           w[l] = self.params[f'W{l+1}']
           b[l] = self.params[f'b{l+1}']
@@ -259,21 +256,23 @@ class FullyConnectedNet(object):
             bt[l] = self.params[f'beta{l+1}']
 
           # affine
-          l_o[l], affine_cache = affine_forward(l_o[l], w[l], b[l])    # affine = np.maximum(0, w1*X + b1)
+          scores, affine_cache = affine_forward(scores, w[l], b[l])    # affine = np.maximum(0, w1*X + b1)
           cache.append(affine_cache)
-          
           # batch normalization 1
           if self.normalization == 'batchnorm':
-            g[l] = np.sqrt(np.var(l_o[l], keepdims=True))         # mini batch variance 
-            bt[l] = np.mean(l_o[l], keepdims=True)                # mini batch mean
-            l_o[l] = (l_o[l] - bt[l]) / g[l]                        # normalize
-            y1 = np.dot(l_o[l], g[l]) + bt[l]                     # scale and shift
+            g[l] = np.sqrt(np.var(scores, keepdims=True))         # mini batch variance 
+            bt[l] = np.mean(scores, keepdims=True)                # mini batch mean
+            scores = (scores - bt[l]) / g[l]                        # normalize
+            y1 = np.dot(scores, g[l]) + bt[l]                     # scale and shift
 
           # relu 1
-          l_o[l+1], relu_cache = relu_forward(l_o[l])                 # relu = np.maximum(0, normalized_x1) 
+          scores, relu_cache = relu_forward(scores)                 # relu = np.maximum(0, normalized_x1) 
           cache.append(relu_cache)
-          
           l_c[l] = cache
+
+        w[self.num_layers-1] = self.params[f'W{self.num_layers}']
+        b[self.num_layers-1] = self.params[f'b{self.num_layers}']
+        scores, score_cache = affine_forward(scores, w[self.num_layers-1], b[self.num_layers-1])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -296,7 +295,27 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
+                  # {affine - [batch/layer norm] - relu} x (L - 1) - affine - softmax
+                  
+        dw = {}
+        db = {}
         
+        loss, dout = softmax_loss(scores, y)
+        dout, dw[self.num_layers-1], db[self.num_layers-1] = affine_backward(dout, score_cache)
+        
+        for l in range(self.num_layers-2, -1, -1):
+          dout = relu_backward(dout, l_c[l][-1])
+          
+          if self.normalization == 'batchnorm':
+            pass
+          
+          dout, dw[l], db[l] = affine_backward(dout, l_c[l][0])
+        
+        for key in dw:
+          loss += 0.5 * reg * (np.sum(w[key]*w[key]))
+          dw[key] += (2 * 0.5 * reg * w[key])
+          grads[f'W{key+1}'] = dw[key]
+          grads[f'b{key+1}'] = db[key]
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
