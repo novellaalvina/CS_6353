@@ -182,15 +182,18 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Referencing the original paper (https://arxiv.org/abs/1502.03167)   #
         # might prove to be helpful.                                          #
         #######################################################################
-        mean = np.mean(x, axis=0)                               # mini batch mean
-        std = np.sqrt(np.var(x, keepdims=True, axis=0) + eps)   # mini batch variance  
-        normalized_x = (x - mean) / std                         # normalize   
-        out = gamma * normalized_x + beta                       # scale and shift  
+        mean = np.mean(x, axis=0)                # mini batch mean
+        std = np.sqrt(np.var(x, axis=0) + eps)   # mini batch variance  
+        normalized_x = (x - mean) / std          # normalize   
+        out = gamma * normalized_x + beta        # scale and shift  
         
-        running_mean = momentum * running_mean + (1 - momentum) * mean   
-        running_var = momentum * running_var + (1 - momentum) * std**2     
+        axis = bn_param.get('axis', 0)
 
-        cache = x, mean, std, gamma, normalized_x
+        if axis == 0:
+            running_mean = momentum * running_mean + (1 - momentum) * mean   
+            running_var = momentum * running_var + (1 - momentum) * std**2   
+
+        cache = x, mean, std, gamma, normalized_x, axis
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -212,7 +215,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # Store the updated running means back into bn_param
     bn_param['running_mean'] = running_mean
     bn_param['running_var'] = running_var
-
+    
     return out, cache
 
 def batchnorm_backward(dout, cache):
@@ -240,23 +243,23 @@ def batchnorm_backward(dout, cache):
     # might prove to be helpful.                                              #
     ###########################################################################
     N, D = dout.shape
-    x, mean, std, gamma, normalized_x = cache
+    x, mean,std, gamma, normalized_x, axis = cache
+    dbeta = np.sum(dout, axis=axis)
     
-    dbeta = np.sum(dout, axis=0)
-    
-    dgamma = np.sum(normalized_x * dout, axis=0)
+    dgamma = np.sum(dout * normalized_x, axis=axis)
     dnormalized_x = dout * gamma
     
-    dsqrt_var = -1/ std**2 * np.sum(dnormalized_x * (x - mean), axis=0)
-    dvar = 0.5 * 1 / std * dsqrt_var
+    dsqrt_var = - np.sum(dnormalized_x * (x - mean), axis=0) / std**2
+    dvar = 0.5 * dsqrt_var / std
 
     dnormalized_x_mean1 = dnormalized_x / std
-    dnormalized_x_mean2 = 2 * (x - mean) / N * np.ones(dout.shape) * dvar
+    dnormalized_x_mean2 = 2 * (x - mean) * dvar / N 
+    # * np.ones(dout.shape)
     
     dx1 = dnormalized_x_mean1 + dnormalized_x_mean2
-    dmean = -1 * np.sum(dnormalized_x_mean1 + dnormalized_x_mean2, axis=0)
+    dmean = -1 * np.sum(dx1, axis=0)
     
-    dx2 = 1 / N * np.ones(dout.shape) * dmean
+    dx2 = dmean / N
     dx = dx1 + dx2
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -287,7 +290,7 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    x, mean, std, gamma, normalized_x = cache
+    x, mean, std, gamma, normalized_x, axis = cache
     N, D = dout.shape   
     
     dbeta = np.sum(dout, axis=0)
@@ -336,8 +339,8 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
     #Rows in BathNorm: Instances, Rows in LayerNorm: Features
-    out, cache = batchnorm_forward(x, gamma, beta, bn_param={'mode':'train'})
-    out = out.T
+    out, cache = batchnorm_forward(x.T, gamma.reshape(-1, 1), beta.reshape(1, -1).T, bn_param={'mode':'train', 'eps': eps, 'axis': 1 })
+    out = np.reshape(out.T, x.shape)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -368,7 +371,8 @@ def layernorm_backward(dout, cache):
     # still apply!                                                            #
     ###########################################################################
     #Rows in BathNorm: Instances, Rows in LayerNorm: Features
-    pass
+    dx, dgamma, dbeta = batchnorm_backward(dout.T, cache)
+    dx = np.reshape(dx.T, dout.shape)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
