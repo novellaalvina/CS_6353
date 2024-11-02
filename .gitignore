@@ -3,3 +3,5 @@
 assignment3/cs6353/datasets/cifar-10-batches-py/
 
 **/*.zip
+
+**/*.tar.gz
