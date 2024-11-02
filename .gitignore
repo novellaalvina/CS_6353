@@ -1,6 +1,9 @@
 **/__pycache__/
 
+assignment1/cs6353/datasets/cifar-10-batches-py/
+assignment2/cs6353/datasets/cifar-10-batches-py/
 assignment3/cs6353/datasets/cifar-10-batches-py/
+assignment4/cs6353/datasets/cifar-10-batches-py/
 
 **/*.zip
 
