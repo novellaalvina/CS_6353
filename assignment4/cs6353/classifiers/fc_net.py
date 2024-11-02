@@ -71,9 +71,13 @@ class FullyConnectedNet(object):
       # dropout layer so that the layer knows the dropout probability and the mode  #
       # (train / test). You can pass the same dropout_param to each dropout layer.  #
       ###############################################################################
+
+      self.dropout_param['p'] = dropout
+      self.dropout_param['mode'] = 'train'
       
-      pass
-      
+      if seed is not None:
+        self.dropout_param['seed'] = seed
+            
       ###############################################################################
       #                             END OF YOUR CODE                                #
       ###############################################################################
@@ -102,8 +106,11 @@ class FullyConnectedNet(object):
       # TODO: Set train/test mode for dropout param since it behaves differently    #
       # during training and testing.                                                #
       ###############################################################################
-      
-      pass
+
+      if mode == 'train':
+        self.dropout_param['mode'] = 'train'
+      else:
+        self.dropout_param['mode'] = 'test'
       
       ###############################################################################
       #                             END OF YOUR CODE                                #
@@ -144,7 +151,10 @@ class FullyConnectedNet(object):
           # dropout forward pass.                                                    #
           ############################################################################
 
-          pass
+          this_layer, this_cache = dropout_forward(prev_layer, self.dropout_param)
+          prev_layer = this_layer
+          layer.append(this_layer)
+          cache.append(this_cache)
           
           ############################################################################
           #                             END OF YOUR CODE                             #
