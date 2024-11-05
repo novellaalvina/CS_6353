@@ -339,10 +339,14 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
+
+  # x.shape = (2, 3, 4, 4) = (N, C, H, W) 
+  # w.shape = (3, 3, 4, 4) = (F, C, HH, WW)
+  # conv_param = {'stride': 2, 'pad': 1} 
   
-  N, C, H, W = x.shape                                  # (2, 3, 4, 4)
-  F, C, HH, WW = w.shape                                # (3, 3, 4, 4)
-  stride, pad = conv_param['stride'], conv_param['pad'] # {'stride': 2, 'pad': 1} 
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+  stride, pad = conv_param['stride'], conv_param['pad']
   
   padded_x = np.pad(x, [(0,0), (0,0), (pad, pad), (pad, pad)])
 
@@ -384,6 +388,7 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
+
   x, w, b, conv_param = cache
   stride, pad = conv_param['stride'], conv_param['pad']
   
@@ -425,6 +430,7 @@ def conv_backward_naive(dout, cache):
   else: 
     dx = dpadded_x
 
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -454,19 +460,19 @@ def max_pool_forward_naive(x, pool_param):
   N, C, H, W = x.shape
   pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
   
-  pool_out_height = int((H - pool_height) / stride + 1)
+  pool_out_height = int((W - pool_height) / stride + 1)
   pool_out_width =  int((W - pool_width) / stride + 1)
     
   out = np.empty((N, C, pool_out_height, pool_out_width))
   
   for n in range(N):
-      for h in range(pool_out_height):
-        for wi in range(pool_out_width):
-          h_start = h * stride 
-          w_start = wi * stride
-          h_end = h_start + pool_height
-          w_end = w_start + pool_width
-          out[n, :, h, wi] = x[n, :, h_start:h_end, w_start:w_end].max(axis=(1, 2))
+    for h in range(pool_out_height):
+      for wi in range(pool_out_width):
+        h_start = h * stride 
+        w_start = wi * stride
+        h_end = h_start + pool_height
+        w_end = w_start + pool_width
+        out[n, :, h, wi] = x[n, :, h_start:h_end, w_start:w_end].max(axis=(1, 2))
   
   #############################################################################
   #                             END OF YOUR CODE                              #
@@ -513,12 +519,11 @@ def max_pool_backward_naive(dout, cache):
 
           # Gradient w.r.t. input x
           dx[n, c, h_start:h_end, w_start:w_end] += (window == m) * dout[n, c, h, w_i] 
-  
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
   return dx
-
 
 def spatial_batchnorm_forward(x, gamma, beta, bn_param):
   """
@@ -552,7 +557,11 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
   # be very short; ours is less than five lines.                              #
   #############################################################################
 
-  pass
+  N, C, H, W = x.shape                                     
+  x = np.moveaxis(x, 1, -1).reshape(-1, C)                 
+  out, cache = batchnorm_forward(x, gamma, beta, bn_param)
+  out = np.moveaxis(out.reshape(N, H, W, C), -1, 1)        
+
   
   #############################################################################
   #                             END OF YOUR CODE                              #
@@ -584,7 +593,10 @@ def spatial_batchnorm_backward(dout, cache):
   # be very short; ours is less than five lines.                              #
   #############################################################################
  
-  pass
+  N, C, H, W = dout.shape                            
+  dout = np.moveaxis(dout, 1, -1).reshape(-1, C)      
+  dx, dgamma, dbeta = batchnorm_backward(dout, cache) 
+  dx = np.moveaxis(dx.reshape(N, H, W, C), -1, 1)     
 
   #############################################################################
   #                             END OF YOUR CODE                              #
