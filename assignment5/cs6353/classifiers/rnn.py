@@ -140,7 +140,29 @@ class CaptioningRNN(object):
         # Note also that you are allowed to make use of functions from layers.py   #
         # in your implementation, if needed.                                       #
         ############################################################################
-        pass
+        # forward pass: step (1)-(5)
+        h0, cache_1 = affine_forward(features, W_proj, b_proj)              # [N, H]
+        word_vector, cache_2 = word_embedding_forward(captions_in, W_embed) # [N, T, W]
+        h, cache_3 = rnn_forward(word_vector, h0, Wx, Wh, b)                # [N, T, H]
+        scores, cache_4 = temporal_affine_forward(h, W_vocab, b_vocab)      # [N, T, V]
+        loss, dout = temporal_softmax_loss(scores, captions_out, mask, verbose=False)
+
+        # backward pass: step (5)-(1)
+        dx, dW_vocab, db_vocab = temporal_affine_backward(dout, cache_4)
+        dx, dh0, dWx, dWh, db = rnn_backward(dx, cache_3)
+        dW_embed = word_embedding_backward(dx, cache_2)
+        d_input, dW_proj, db_proj = affine_backward(dh0, cache_1)
+
+        # store gradients in grads
+        grads['W_proj'] = dW_proj
+        grads['b_proj'] = db_proj
+        grads['W_embed'] = dW_embed
+        grads['Wx'] = dWx
+        grads['Wh'] = dWh
+        grads['b'] = db
+        grads['W_vocab'] = dW_vocab
+        grads['b_vocab'] = db_vocab
+        
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -205,7 +227,20 @@ class CaptioningRNN(object):
         # NOTE: we are still working over minibatches in this function. Also if   #
         # you are using an LSTM, initialize the first cell state to zeros.        #
         ###########################################################################
-        pass
+        # initialize hidden state
+        h, cache = affine_forward(features, W_proj, b_proj)
+
+        # first word feeded to RNN should be start token
+        x = np.full(N, self._start)
+
+        # step (1)-(4) at each timestep
+        for i in range(max_length):
+          x, cache = word_embedding_forward(x, W_embed)
+          h, cache = rnn_step_forward(x, h, Wx, Wh, b)
+          scores, cache = affine_forward(h, W_vocab, b_vocab)
+          x = np.argmax(scores, axis=1)
+          captions[:, i] = x
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
